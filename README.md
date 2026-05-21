@@ -1,4 +1,4 @@
-# Equestrian Run 🐎
+# Endless Runner
 
 A professional, high-performance Endless Runner web game built with vanilla JavaScript and HTML5 Canvas. Experience fluid animations, responsive design, and a competitive leaderboard system.
 

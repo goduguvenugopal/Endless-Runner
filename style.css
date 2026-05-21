@@ -1,0 +1,234 @@
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #1a1a2e;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden;
+    color: #fff;
+}
+
+#gameWrapper {
+    width: 100%;
+    max-width: 1000px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+#navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px 25px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.logo {
+    font-weight: 900;
+    font-size: 1.4rem;
+    letter-spacing: 3px;
+    color: #e94560;
+}
+
+#leaderboard-btn {
+    background: transparent;
+    border: 1px solid #e94560;
+    color: #fff;
+    padding: 8px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+#leaderboard-btn:hover {
+    background: #e94560;
+}
+
+#high-score-card {
+    background: rgba(233, 69, 96, 0.2);
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-weight: 900;
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    border: 1px solid rgba(233, 69, 96, 0.4);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content.leaderboard {
+    width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+#leaderboard-list {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0;
+    text-align: left;
+}
+
+#leaderboard-list li {
+    padding: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    justify-content: space-between;
+}
+
+.close-btn {
+    margin-top: 10px;
+    background: #333;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#gameContainer {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2 / 1;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 0 4px rgba(255,255,255,0.05);
+}
+
+canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    background: linear-gradient(#1e3c72 0%, #2a5298 60%, #4a3000 60%, #2b1b00 100%);
+}
+
+#ui-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 20px;
+    pointer-events: none;
+    display: flex;
+    justify-content: space-between;
+}
+
+#score-card {
+    background: rgba(0, 0, 0, 0.6);
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-weight: 900;
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    border: 1px solid rgba(255,255,255,0.2);
+    backdrop-filter: blur(5px);
+}
+
+.modal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    animation: fadeIn 0.4s ease;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    border: 2px solid #e94560;
+    box-shadow: 0 0 30px rgba(233, 69, 96, 0.4);
+    max-width: 90%;
+}
+
+.modal-content h1 {
+    margin: 0 0 10px 0;
+    color: #e94560;
+    font-size: 2.5rem;
+    letter-spacing: 4px;
+    text-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
+}
+
+.final-score {
+    font-size: 1.5rem;
+    margin-bottom: 30px;
+    color: #fff;
+    opacity: 0.9;
+}
+
+#restart-btn {
+    background: #e94560;
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+#restart-btn:hover {
+    background: #ff5e78;
+    transform: scale(1.05);
+}
+
+#restart-btn:active {
+    transform: scale(0.95);
+}
+
+.hint {
+    margin-top: 20px;
+    font-size: 0.8rem;
+    opacity: 0.5;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Mobile Adjustments */
+@media (max-width: 600px) {
+    #gameWrapper {
+        padding: 0;
+        width: 100vw;
+        height: 100vh;
+        max-width: none;
+    }
+    #gameContainer {
+        aspect-ratio: auto;
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+    }
+    .modal-content h1 {
+        font-size: 1.8rem;
+    }
+    #score-card {
+        font-size: 0.9rem;
+    }
+}

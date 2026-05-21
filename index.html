@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Endless Runner Web Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="gameWrapper">
+        <nav id="navbar">
+            <div class="logo">ENDLESS RUNNER</div>
+            <div class="nav-links">
+                <button id="leaderboard-btn">🏆 RANKINGS</button>
+            </div>
+        </nav>
+        <div id="gameContainer">
+            <canvas id="gameCanvas"></canvas>
+            <div id="ui-overlay">
+                <div id="score-card">SCORE: <span id="score-value">0</span></div>
+                <div id="high-score-card">BEST: <span id="high-score-value">0</span></div>
+            </div>
+            <!-- Leaderboard Modal -->
+            <div id="leaderboardModal" class="modal" style="display: none;">
+                <div class="modal-content leaderboard">
+                    <h1>LEADERBOARD</h1>
+                    <ul id="leaderboard-list"></ul>
+                    <button class="close-btn">CLOSE</button>
+                </div>
+            </div>
+            <div id="gameOver" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <h1>MISSION FAILED</h1>
+                    <div class="final-score">SCORE: <span id="final-score-value">0</span></div>
+                    <button id="restart-btn">RUN AGAIN</button>
+                    <p class="hint">Tap or Press Space to Restart</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

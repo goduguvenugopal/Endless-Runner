@@ -10,18 +10,41 @@ const leaderboardModal = document.getElementById('leaderboardModal');
 const leaderboardList = document.getElementById('leaderboard-list');
 const closeBtn = document.querySelector('.close-btn');
 
-// Game Constants
-const GRAVITY = 0.6;
-const JUMP_FORCE = -16;
-let OBSTACLE_SPEED = 6;
-const SPAWN_RATE = 90;
+const pauseBtn = document.getElementById('pause-btn');
+const resumeBtn = document.getElementById('resume-btn');
+const pauseModal = document.getElementById('pauseModal');
 
-// Game State
+// Audio elements
+const bgMusic = document.getElementById('bg-music');
+const startSound = document.getElementById('start-sound');
+const gameoverSound = document.getElementById('gameover-sound');
+const jumpSound = document.getElementById('jump-sound');
+
+// Game Constants
+const GRAVITY = 0.7;
+const JUMP_FORCE = -15;
+let OBSTACLE_SPEED = 7;
+const SPAWN_RATE = 80;
+
+// Colors
+const NEON_CYAN = '#00f2ff';
+const NEON_MAGENTA = '#ff00ff';
+const NEON_PURPLE = '#9d00ff';
+
+// Game State Machine
+const STATE = {
+    MENU: 'MENU',
+    PLAYING: 'PLAYING',
+    PAUSED: 'PAUSED',
+    GAMEOVER: 'GAMEOVER'
+};
+let gameState = STATE.MENU;
+
 let player = {
-    x: 50,
+    x: 100,
     y: 0,
-    width: 35,
-    height: 70,
+    width: 40,
+    height: 80,
     dy: 0,
     jumping: false,
     frame: 0
@@ -30,15 +53,17 @@ let player = {
 let obstacles = [];
 let score = 0;
 let frameCount = 0;
-let gameActive = false; // Start inactive for menu
 let groundY = 0;
+let gridOffset = 0;
 
 function resize() {
     const container = document.getElementById('gameContainer');
     canvas.width = container.clientWidth;
     canvas.height = container.clientHeight;
-    groundY = canvas.height * 0.7;
-    player.y = groundY - player.height;
+    groundY = canvas.height * 0.75;
+    if (gameState === STATE.MENU) {
+        player.y = groundY - player.height;
+    }
 }
 
 window.addEventListener('resize', resize);
@@ -46,27 +71,30 @@ resize();
 
 // Leaderboard Logic
 function saveScore(newScore) {
-    let scores = JSON.parse(localStorage.getItem('equestrian_scores') || '[]');
-    scores.push({ score: newScore, date: new Date().toLocaleDateString() });
+    let scores = JSON.parse(localStorage.getItem('endless_runner_scores') || '[]');
+    const now = new Date();
+    const formattedDate = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getFullYear()).slice(-2)}`;
+    scores.push({ score: newScore, date: formattedDate });
     scores.sort((a, b) => b.score - a.score);
-    scores = scores.slice(0, 5); // Keep top 5
-    localStorage.setItem('equestrian_scores', JSON.stringify(scores));
+    scores = scores.slice(0, 5); 
+    localStorage.setItem('endless_runner_scores', JSON.stringify(scores));
     updateHighScoreDisplay();
 }
 
 function updateHighScoreDisplay() {
-    const scores = JSON.parse(localStorage.getItem('equestrian_scores') || '[]');
+    const scores = JSON.parse(localStorage.getItem('endless_runner_scores') || '[]');
     const best = scores.length > 0 ? scores[0].score : 0;
     highScoreValue.innerText = best;
 }
 
 function showLeaderboard() {
-    gameActive = false; // Pause game
-    const scores = JSON.parse(localStorage.getItem('equestrian_scores') || '[]');
+    if (gameState === STATE.PLAYING) togglePause();
+    
+    const scores = JSON.parse(localStorage.getItem('endless_runner_scores') || '[]');
     leaderboardList.innerHTML = scores.map((s, i) => `
         <li>
-            <span>#${i + 1} - ${s.date}</span>
-            <span style="color: #e94560; font-weight: bold;">${s.score}</span>
+            <span>#${i + 1} &nbsp; ${s.date}</span>
+            <span style="color: ${NEON_MAGENTA}; font-weight: bold; margin-left: 20px;">${s.score} PTS</span>
         </li>
     `).join('') || '<li>No scores yet!</li>';
     leaderboardModal.style.display = 'flex';
@@ -75,10 +103,6 @@ function showLeaderboard() {
 leaderboardBtn.addEventListener('click', showLeaderboard);
 closeBtn.addEventListener('click', () => {
     leaderboardModal.style.display = 'none';
-    // Only resume if we weren't in a game over state
-    if (gameOverElement.style.display !== 'flex') {
-        draw(); // Ensure one frame is drawn to show state
-    }
 });
 
 function init() {
@@ -86,67 +110,92 @@ function init() {
     player.dy = 0;
     player.jumping = false;
     player.frame = 0;
+    player.y = groundY - player.height;
     obstacles = [];
     score = 0;
     frameCount = 0;
-    OBSTACLE_SPEED = 6;
-    gameActive = true;
+    OBSTACLE_SPEED = 7;
+    gameState = STATE.PLAYING;
     gameOverElement.style.display = 'none';
+    pauseModal.style.display = 'none';
     scoreValue.innerText = score;
     updateHighScoreDisplay();
-    requestAnimationFrame(gameLoop);
+
+    // Audio triggers
+    console.log("Attempting to play start sound and bg music...");
+    startSound.currentTime = 0;
+    startSound.play()
+        .then(() => console.log("Start sound playing"))
+        .catch(e => console.error("Start sound error:", e));
+    
+    bgMusic.play()
+        .then(() => console.log("Background music playing"))
+        .catch(e => console.error("Background music error:", e));
 }
 
+function togglePause() {
+    if (gameState === STATE.PLAYING) {
+        gameState = STATE.PAUSED;
+        pauseModal.style.display = 'flex';
+        bgMusic.pause();
+    } else if (gameState === STATE.PAUSED) {
+        gameState = STATE.PLAYING;
+        pauseModal.style.display = 'none';
+        bgMusic.play().catch(() => {});
+    }
+}
+
+pauseBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    togglePause();
+});
+resumeBtn.addEventListener('click', togglePause);
+
 function handleInput(e) {
-    if (e && e.preventDefault) e.preventDefault();
-    if (!gameActive && gameOverElement.style.display === 'flex') {
+    if (e && e.preventDefault && e.type !== 'keydown') e.preventDefault();
+
+    if (gameState === STATE.MENU || gameState === STATE.GAMEOVER) {
         init();
         return;
     }
-    if (!gameActive && !leaderboardModal.style.display === 'flex') {
-        init();
+
+    if (gameState === STATE.PAUSED) {
+        togglePause();
         return;
     }
-    if (player.y > groundY - player.height - 5) { // Simple floor check
+
+    if (gameState === STATE.PLAYING && !player.jumping) {
         player.dy = JUMP_FORCE;
         player.jumping = true;
+        
+        // Jump sound
+        jumpSound.currentTime = 0;
+        jumpSound.play().catch(() => {});
     }
 }
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'Space' || e.code === 'ArrowUp') handleInput(e);
+    if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
 });
 
-canvas.addEventListener('touchstart', (e) => {
-    if (!gameActive && gameOverElement.style.display !== 'flex') {
-        init();
-    } else {
-        handleInput(e);
-    }
-}, { passive: false });
-
+canvas.addEventListener('touchstart', handleInput, { passive: false });
 canvas.addEventListener('mousedown', (e) => {
-    if (e.button === 0) {
-        if (!gameActive && gameOverElement.style.display !== 'flex') {
-            init();
-        } else {
-            handleInput(e);
-        }
-    }
+    if (e.button === 0) handleInput(e);
 });
 
 restartBtn.addEventListener('click', init);
 
 function spawnObstacle() {
-    const type = Math.random() > 0.5 ? 'tree' : 'stone';
+    const type = Math.random() > 0.5 ? 'tall' : 'wide';
     let width, height;
     
-    if (type === 'tree') {
-        width = 40;
-        height = 60 + Math.random() * 40;
+    if (type === 'tall') {
+        width = 30;
+        height = 70 + Math.random() * 30;
     } else {
-        width = 40 + Math.random() * 20;
-        height = 30 + Math.random() * 10;
+        width = 60 + Math.random() * 30;
+        height = 40;
     }
 
     obstacles.push({
@@ -154,12 +203,13 @@ function spawnObstacle() {
         y: groundY - height,
         width: width,
         height: height,
-        type: type
+        type: type,
+        color: Math.random() > 0.5 ? NEON_CYAN : NEON_MAGENTA
     });
 }
 
 function update() {
-    if (!gameActive) return;
+    if (gameState !== STATE.PLAYING) return;
 
     // Player Physics
     player.dy += GRAVITY;
@@ -172,10 +222,11 @@ function update() {
         player.frame += 0.15;
     }
 
+    // Grid Scroll
+    gridOffset = (gridOffset + OBSTACLE_SPEED) % 40;
+
     // Difficulty scaling
-    if (score > 0 && score % 10 === 0) {
-        OBSTACLE_SPEED += 0.002; 
-    }
+    OBSTACLE_SPEED += 0.001;
 
     // Obstacle Logic
     frameCount++;
@@ -186,22 +237,28 @@ function update() {
     for (let i = obstacles.length - 1; i >= 0; i--) {
         obstacles[i].x -= OBSTACLE_SPEED;
 
-        // Collision Detection (Hitbox refinement)
+        // Collision Detection
         const px = player.x + 10;
-        const py = player.y + 10;
+        const py = player.y + 5;
         const pw = player.width - 20;
-        const ph = player.height - 15;
+        const ph = player.height - 10;
 
         if (
-            px < obstacles[i].x + obstacles[i].width - 5 &&
-            px + pw > obstacles[i].x + 5 &&
+            px < obstacles[i].x + obstacles[i].width &&
+            px + pw > obstacles[i].x &&
             py < obstacles[i].y + obstacles[i].height &&
             py + ph > obstacles[i].y
         ) {
-            gameActive = false;
+            gameState = STATE.GAMEOVER;
             saveScore(score);
             finalScoreValue.innerText = score;
             gameOverElement.style.display = 'flex';
+            
+            // Audio triggers
+            bgMusic.pause();
+            bgMusic.currentTime = 0;
+            gameoverSound.currentTime = 0;
+            gameoverSound.play().catch(() => {});
         }
 
         if (obstacles[i].x + obstacles[i].width < 0) {
@@ -218,142 +275,137 @@ function drawPlayer(x, y) {
 
     const runCycle = player.frame * 2;
     const limbSwing = Math.sin(runCycle);
-    const bounce = Math.abs(Math.cos(runCycle)) * 4;
+    
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = NEON_CYAN;
+    ctx.strokeStyle = NEON_CYAN;
+    ctx.lineWidth = 3;
 
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    // Humanoid Body Shape
+    // Torso
     ctx.beginPath();
-    ctx.ellipse(17, player.height + 5, 20, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.lineWidth = 4;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    // Back Limbs
-    ctx.strokeStyle = '#2980b9';
-    ctx.beginPath();
-    ctx.moveTo(17, 45);
-    ctx.lineTo(17 - limbSwing * 15, 55);
-    ctx.lineTo(17 - limbSwing * 20, 70);
+    ctx.moveTo(20, 25);
+    ctx.lineTo(20, 50);
     ctx.stroke();
 
-    ctx.strokeStyle = '#c0392b';
-    ctx.beginPath();
-    ctx.moveTo(17, 25);
-    ctx.lineTo(17 + limbSwing * 12, 35);
-    ctx.lineTo(17 + limbSwing * 18, 25);
-    ctx.stroke();
-
-    // Body
-    ctx.fillStyle = '#e74c3c';
-    ctx.beginPath();
-    ctx.roundRect(8, 20 - bounce, 18, 28, 8);
-    ctx.fill();
-
-    // Head Details
-    const headY = 12 - bounce;
-    ctx.fillStyle = '#ffdbac';
-    ctx.fillRect(14, 18 - bounce, 6, 5); // Neck
-    ctx.beginPath();
-    ctx.arc(17, headY, 11, 0, Math.PI * 2); // Head
-    ctx.fill();
-
-    // Eyes & Face
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(21, headY - 2, 3, 0, Math.PI * 2);
-    ctx.arc(13, headY - 2, 3, 0, Math.PI * 2);
-    ctx.fill();
+    // Head (Visor Style)
     ctx.fillStyle = '#000';
     ctx.beginPath();
-    ctx.arc(22, headY - 2, 1.2, 0, Math.PI * 2);
-    ctx.arc(14, headY - 2, 1.2, 0, Math.PI * 2);
+    ctx.roundRect(10, 5, 20, 20, 5);
     ctx.fill();
+    ctx.stroke();
+    
+    // Glowing Visor
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = NEON_MAGENTA;
+    ctx.fillStyle = NEON_MAGENTA;
+    ctx.fillRect(15, 12, 12, 3);
 
-    // Mouth
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 1;
+    // Arms
+    ctx.shadowColor = NEON_CYAN;
     ctx.beginPath();
-    ctx.arc(17, headY + 4, 3, 0.2, Math.PI - 0.2);
+    // Arm 1
+    ctx.moveTo(20, 30);
+    ctx.lineTo(20 + limbSwing * 15, 45);
+    // Arm 2
+    ctx.moveTo(20, 30);
+    ctx.lineTo(20 - limbSwing * 15, 45);
     ctx.stroke();
 
-    // Hat
-    ctx.fillStyle = '#2c3e50';
+    // Legs
     ctx.beginPath();
-    ctx.arc(17, headY - 2, 11, Math.PI, 0);
-    ctx.fill();
-    ctx.fillRect(17, headY - 4, 16, 3);
-
-    // Front Limbs
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = '#3498db';
-    ctx.beginPath();
-    ctx.moveTo(17, 45);
-    ctx.lineTo(17 + limbSwing * 15, 55);
-    ctx.lineTo(17 + limbSwing * 20, 70);
+    // Leg 1
+    ctx.moveTo(20, 50);
+    ctx.lineTo(20 + limbSwing * 20, 80);
+    // Leg 2
+    ctx.moveTo(20, 50);
+    ctx.lineTo(20 - limbSwing * 20, 80);
     ctx.stroke();
-
-    ctx.strokeStyle = '#e74c3c';
-    ctx.beginPath();
-    ctx.moveTo(17, 25);
-    ctx.lineTo(17 - limbSwing * 12, 35);
-    ctx.lineTo(17 - limbSwing * 18, 25);
-    ctx.stroke();
-
-    // Shoes
-    ctx.fillStyle = '#333';
-    ctx.fillRect(17 + limbSwing * 20 - 4, 66, 10, 5);
-    ctx.fillRect(17 - limbSwing * 20 - 4, 66, 10, 5);
 
     ctx.restore();
 }
 
 function drawObstacle(obs) {
     ctx.save();
-    if (obs.type === 'tree') {
-        ctx.font = `${obs.height}px serif`;
-        ctx.fillText('🌵', obs.x, obs.y + obs.height - 5);
-    } else {
-        ctx.font = `${obs.height * 1.5}px serif`;
-        ctx.fillText('🪨', obs.x, obs.y + obs.height);
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = obs.color;
+    ctx.strokeStyle = obs.color;
+    ctx.lineWidth = 3;
+    
+    // Neon Barricade Look
+    ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
+    
+    // Interior Detail
+    ctx.lineWidth = 1;
+    for(let i = 0; i < obs.width; i += 10) {
+        ctx.beginPath();
+        ctx.moveTo(obs.x + i, obs.y);
+        ctx.lineTo(obs.x + i, obs.y + obs.height);
+        ctx.stroke();
     }
+
     ctx.restore();
 }
 
+function drawGrid() {
+    ctx.strokeStyle = 'rgba(0, 242, 255, 0.2)';
+    ctx.lineWidth = 1;
+
+    // Vertical lines (perspective)
+    for (let i = -200; i < canvas.width + 200; i += 40) {
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, groundY - 50);
+        ctx.lineTo(i - gridOffset, canvas.height);
+        ctx.stroke();
+    }
+
+    // Horizontal lines
+    for (let i = groundY; i < canvas.height; i += 20) {
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(canvas.width, i);
+        ctx.stroke();
+    }
+}
+
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Clear with dark fade
+    ctx.fillStyle = '#050510';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Horizon line
-    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-    ctx.beginPath();
-    ctx.moveTo(0, groundY);
-    ctx.lineTo(canvas.width, groundY);
-    ctx.stroke();
+    // Neon Horizon
+    const grad = ctx.createLinearGradient(0, groundY, 0, groundY + 5);
+    grad.addColorStop(0, NEON_PURPLE);
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, groundY, canvas.width, 5);
 
+    drawGrid();
     drawPlayer(player.x, player.y);
 
     for (const obstacle of obstacles) {
         drawObstacle(obstacle);
     }
     
-    if (!gameActive && gameOverElement.style.display !== 'flex') {
-        ctx.fillStyle = 'white';
+    if (gameState === STATE.MENU) {
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = NEON_CYAN;
+        ctx.fillStyle = NEON_CYAN;
         ctx.font = 'bold 30px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('TAP OR CLICK TO START', canvas.width/2, canvas.height/2);
+        ctx.fillText('NEON RUNNER', canvas.width/2, canvas.height/2 - 40);
+        
+        ctx.font = '18px sans-serif';
+        ctx.fillText('TAP TO START', canvas.width/2, canvas.height/2 + 20);
     }
 }
 
 function gameLoop() {
     update();
     draw();
-    if (gameActive || (!gameActive && gameOverElement.style.display !== 'flex')) {
-        requestAnimationFrame(gameLoop);
-    }
+    requestAnimationFrame(gameLoop);
 }
 
-// Initial display
+// Start
 updateHighScoreDisplay();
-draw();
-requestAnimationFrame(gameLoop);
+gameLoop();

@@ -8,6 +8,20 @@
 </head>
 <body>
     <div id="gameWrapper">
+        <!-- Audio Elements (Local Assets) -->
+        <audio id="bg-music" loop>
+            <source src="assets/bg-song.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="start-sound">
+            <source src="assets/start-stop-game.wav" type="audio/wav">
+        </audio>
+        <audio id="gameover-sound">
+            <source src="assets/game-over.wav" type="audio/wav">
+        </audio>
+        <audio id="jump-sound">
+            <source src="assets/jumping-sound.wav" type="audio/wav">
+        </audio>
+
         <nav id="navbar">
             <div class="logo">ENDLESS RUNNER</div>
             <div class="nav-links">
@@ -18,7 +32,18 @@
             <canvas id="gameCanvas"></canvas>
             <div id="ui-overlay">
                 <div id="score-card">SCORE: <span id="score-value">0</span></div>
+                <div id="pause-container">
+                    <button id="pause-btn">PAUSE</button>
+                </div>
                 <div id="high-score-card">BEST: <span id="high-score-value">0</span></div>
+            </div>
+            <!-- Pause Modal -->
+            <div id="pauseModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <h1>PAUSED</h1>
+                    <button id="resume-btn">RESUME</button>
+                    <p class="hint">Press P to Resume</p>
+                </div>
             </div>
             <!-- Leaderboard Modal -->
             <div id="leaderboardModal" class="modal" style="display: none;">

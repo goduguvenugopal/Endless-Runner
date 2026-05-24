@@ -71,18 +71,18 @@ resize();
 
 // Leaderboard Logic
 function saveScore(newScore) {
-    let scores = JSON.parse(localStorage.getItem('endless_runner_scores') || '[]');
+    let scores = JSON.parse(localStorage.getItem('kavex_runner_scores') || '[]');
     const now = new Date();
     const formattedDate = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getFullYear()).slice(-2)}`;
     scores.push({ score: newScore, date: formattedDate });
     scores.sort((a, b) => b.score - a.score);
     scores = scores.slice(0, 5); 
-    localStorage.setItem('endless_runner_scores', JSON.stringify(scores));
+    localStorage.setItem('kavex_runner_scores', JSON.stringify(scores));
     updateHighScoreDisplay();
 }
 
 function updateHighScoreDisplay() {
-    const scores = JSON.parse(localStorage.getItem('endless_runner_scores') || '[]');
+    const scores = JSON.parse(localStorage.getItem('kavex_runner_scores') || '[]');
     const best = scores.length > 0 ? scores[0].score : 0;
     highScoreValue.innerText = best;
 }
@@ -90,11 +90,11 @@ function updateHighScoreDisplay() {
 function showLeaderboard() {
     if (gameState === STATE.PLAYING) togglePause();
     
-    const scores = JSON.parse(localStorage.getItem('endless_runner_scores') || '[]');
+    const scores = JSON.parse(localStorage.getItem('kavex_runner_scores') || '[]');
     leaderboardList.innerHTML = scores.map((s, i) => `
         <li>
             <span>#${i + 1} &nbsp; ${s.date}</span>
-            <span style="color: ${NEON_MAGENTA}; font-weight: bold; margin-left: 20px;">${s.score} PTS</span>
+            <span style="color: ${NEON_MAGENTA}; font-weight: bold; margin-left: 20px;">${s.score} POINTS</span>
         </li>
     `).join('') || '<li>No scores yet!</li>';
     leaderboardModal.style.display = 'flex';
@@ -393,7 +393,7 @@ function draw() {
         ctx.fillStyle = NEON_CYAN;
         ctx.font = 'bold 30px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('NEON RUNNER', canvas.width/2, canvas.height/2 - 40);
+        ctx.fillText('KAVEX RUNNER', canvas.width/2, canvas.height/2 - 40);
         
         ctx.font = '18px sans-serif';
         ctx.fillText('TAP TO START', canvas.width/2, canvas.height/2 + 20);

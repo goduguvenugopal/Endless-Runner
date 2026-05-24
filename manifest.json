@@ -1,0 +1,21 @@
+{
+  "name": "Vexka Runner",
+  "short_name": "Vexka",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#050510",
+  "theme_color": "#050510",
+  "description": "A high-performance neon-themed endless runner web game.",
+  "icons": [
+    {
+      "src": "assets/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
